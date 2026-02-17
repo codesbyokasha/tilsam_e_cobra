@@ -111,21 +111,16 @@
         </div>
 
         <div class="panel-group">
-            <div class="group-label">Font Styles</div>
+            <div class="group-label">Center Font Style</div>
             
             <div class="row">
-                <span class="input-label" style="width: 50px;">Spiral:</span>
-                <input type="file" id="spiralFontInput" accept=".ttf,.otf,.woff" onchange="handleSpiralFont(this)">
-            </div>
-            
-            <div class="row" style="margin-top:4px;">
-                <span class="input-label" style="width: 50px;">Center:</span>
+                <span class="input-label" style="width: 80px;">Upload Font:</span>
                 <input type="file" id="centerFontInput" accept=".ttf,.otf,.woff" onchange="handleCenterFont(this)">
             </div>
 
             <div style="font-size: 10px; color: #666; margin-top: 4px;">
-                Mode: Mufrad (Separated)<br>
-                <strong>Center Space: 500px</strong>
+                Spiral: Automatic (Repo)<br>
+                Mode: Mufrad (Separated)
             </div>
         </div>
 
@@ -163,7 +158,6 @@
         
         // --- REPO FONT CONFIGURATION ---
         const REPO_SPIRAL_FONT_PATH = "fonts/alqalam-quran-majeed.ttf";
-        const REPO_CENTER_FONT_PATH = "fonts/alqalam-taj-nastaleeq.ttf";
 
         // --- SQUARE SETTINGS ---
         const USE_SQUARE = true;
@@ -177,29 +171,23 @@
         
         let currentFontWeight = "700"; 
 
-        // Initialization - AUTO LOAD FROM REPO
+        // Initialization
         window.onload = async () => {
             const stat = document.getElementById('status');
             createNameInputs(); 
 
-            stat.innerText = "Loading Repo Fonts...";
+            stat.innerText = "Loading Spiral Font...";
             
             try {
-                // Load fonts in parallel
-                const [spiralLoaded, centerLoaded] = await Promise.all([
-                    loadFontFromUrl(REPO_SPIRAL_FONT_PATH),
-                    loadFontFromUrl(REPO_CENTER_FONT_PATH)
-                ]);
-
-                if(spiralLoaded) spiralFontData = spiralLoaded;
-                if(centerLoaded) centerFontData = centerLoaded;
+                // Load Repo Spiral Font automatically
+                spiralFontData = await loadFontFromUrl(REPO_SPIRAL_FONT_PATH);
 
                 injectFontFaces();
                 
-                if (spiralFontData || centerFontData) {
-                    stat.innerText = "Ready (Repo Fonts Loaded)";
+                if (spiralFontData) {
+                    stat.innerText = "Ready (Spiral Font Loaded)";
                 } else {
-                    stat.innerText = "Ready (Using Fallback Fonts)";
+                    stat.innerText = "Ready (Spiral Font Failed - Fallback used)";
                 }
 
                 generate();
@@ -273,19 +261,6 @@
             return toMufrad(combined);
         }
 
-        function handleSpiralFont(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                spiralFontData = e.target.result;
-                injectFontFaces();
-                generate();
-                document.getElementById('status').innerText = "Manual Spiral Font";
-            };
-            reader.readAsDataURL(file);
-        }
-
         function handleCenterFont(input) {
             const file = input.files[0];
             if (!file) return;
@@ -294,7 +269,7 @@
                 centerFontData = e.target.result;
                 injectFontFaces();
                 generate();
-                document.getElementById('status').innerText = "Manual Center Font";
+                document.getElementById('status').innerText = "Center Font Updated";
             };
             reader.readAsDataURL(file);
         }
@@ -400,7 +375,7 @@
             centerTxt.setAttribute("x", 0);
             centerTxt.setAttribute("y", 0);
             centerTxt.setAttribute("fill", FIXED_COLOR);
-            centerTxt.setAttribute("font-size", "125"); 
+            centerTxt.setAttribute("font-size", "150"); 
             centerTxt.setAttribute("text-anchor", "middle"); 
             centerTxt.setAttribute("dominant-baseline", "middle"); 
             svg.appendChild(centerTxt);
