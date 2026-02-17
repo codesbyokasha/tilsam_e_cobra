@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- STYLES --nznznzn- */
+        /* --- STYLES --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #222; 
@@ -154,17 +154,16 @@
         // --- FIXED CONSTANTS ---
         const TEXT_PREFIX = "توكلوا یا ملوك واعوان و خدام هذا الطلسم بابطال واخراج وسحب جمیع انواع السحر وخدام السحر والمس والتسالیط من وعن";
         const TEXT_SUFFIX = "الان الان الان";
-        const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; // Matched to your reference image
+        const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; 
         
         const FIXED_COLOR = "#ff0000"; // Red
         const FIXED_SIZE = 65;
         const FIXED_GAP = 100;
         const FIXED_DIRECTION = "center"; // Center Out
         
-        // --- REPO FONT CONFIGURATION ---
-        // These MUST match your uploaded filenames exactly
-        const REPO_SPIRAL_FONT_PATH = "./fonts/Al Qalam Quran Majeed 1 Regular.ttf"; 
-        const REPO_CENTER_FONT_PATH = "./fonts/AlQalam Taj Nastaleeq Regular.ttf"; 
+        // --- REPO FONT CONFIGURATION (Encoded spaces %20) ---
+        const REPO_SPIRAL_FONT_PATH = "./fonts/Al%20Qalam%20Quran%20Majeed%201%20Regular.ttf"; 
+        const REPO_CENTER_FONT_PATH = "./fonts/AlQalam%20Taj%20Nastaleeq%20Regular.ttf"; 
 
         // --- SQUARE SETTINGS ---
         const USE_SQUARE = true;
@@ -187,23 +186,24 @@
             
             try {
                 // 1. Fetch Spiral Font
-                spiralFontData = await loadFontFromUrl(REPO_SPIRAL_FONT_PATH);
+                const spiralLoaded = await loadFontFromUrl(REPO_SPIRAL_FONT_PATH);
+                if(spiralLoaded) spiralFontData = spiralLoaded;
                 
                 // 2. Fetch Center Font
-                centerFontData = await loadFontFromUrl(REPO_CENTER_FONT_PATH);
+                const centerLoaded = await loadFontFromUrl(REPO_CENTER_FONT_PATH);
+                if(centerLoaded) centerFontData = centerLoaded;
 
                 if(spiralFontData && centerFontData) {
                     injectFontFaces();
                     stat.innerText = "Ready (Repo Fonts Loaded)";
-                    generate();
                 } else {
-                    stat.innerText = "Warning: Fonts not found in /fonts folder";
-                    generate(); // Generate anyway with default fonts
+                    stat.innerText = "Repo Fonts Failed (Using Default)";
                 }
+                generate();
 
             } catch(e) {
                 console.error(e);
-                stat.innerText = "Font Load Error (Using Defaults)";
+                stat.innerText = "Font Load Error";
                 generate();
             }
         };
@@ -222,7 +222,7 @@
                     reader.readAsDataURL(blob);
                 });
             } catch (error) {
-                console.error(error);
+                console.error("Font fetch error:", error);
                 return null;
             }
         }
@@ -356,7 +356,6 @@
 
             const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
             
-            // Define Fonts
             let spiralFamily = spiralFontData ? "'SpiralFont'" : "'Amiri', 'Arial', sans-serif";
             let centerFamily = centerFontData ? "'CenterFont'" : "'Amiri', 'Arial', sans-serif";
 
@@ -403,6 +402,7 @@
             centerTxt.setAttribute("x", 0);
             centerTxt.setAttribute("y", 0);
             centerTxt.setAttribute("fill", FIXED_COLOR);
+            // Check line 415 if you need to change this size
             centerTxt.setAttribute("font-size", "150"); 
             centerTxt.setAttribute("text-anchor", "middle"); 
             centerTxt.setAttribute("dominant-baseline", "middle"); 
@@ -441,10 +441,11 @@
             const canvasW = 7016; 
             const canvasH = 9933; 
             
+            // Grid Config: 2 Cols, 3 Rows
             const cols = 2;
             const rows = 3;
             
-            // --- MAXIMIZED GEOMETRY ---
+            // --- GEOMETRY (MAXIMIZED) ---
             // Zero Margins, Minimal Gap (scaled for ultra-res)
             const marginX = 0; 
             const marginY = 0; 
@@ -457,6 +458,7 @@
             const cellW = availableW / cols;
             const cellH = availableH / rows;
 
+            // Square size governed by smaller dimension
             const itemSize = Math.min(cellW, cellH);
 
             // Centering offsets
