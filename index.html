@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- STYLESof --- */
+        /* --- STYLES --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #222; 
@@ -194,8 +194,9 @@
                 if(spiralLoaded) spiralFontData = spiralLoaded;
                 if(centerLoaded) centerFontData = centerLoaded;
 
+                injectFontFaces();
+                
                 if (spiralFontData || centerFontData) {
-                    injectFontFaces();
                     stat.innerText = "Ready (Repo Fonts Loaded)";
                 } else {
                     stat.innerText = "Ready (Using Fallback Fonts)";
@@ -210,7 +211,6 @@
             }
         };
 
-        // Helper to fetch and convert font to Base64
         async function loadFontFromUrl(url) {
             try {
                 const response = await fetch(url);
@@ -229,13 +229,11 @@
             }
         }
 
-        // --- HELPER: MAKE MUFRAD ---
         function toMufrad(str) {
             if(!str) return "";
             return str.replace(/\s+/g, '').split('').join(' ');
         }
 
-        // --- INPUT LOGIC ---
         function createNameInputs() {
             const count = parseInt(document.getElementById('numNames').value) || 1;
             const container = document.getElementById('namesContainer');
@@ -275,7 +273,6 @@
             return toMufrad(combined);
         }
 
-        // --- DUAL FONT HANDLING (MANUAL OVERRIDES) ---
         function handleSpiralFont(input) {
             const file = input.files[0];
             if (!file) return;
@@ -311,10 +308,10 @@
             
             let css = "";
             if(spiralFontData) {
-                css += `@font-face { font-family: 'SpiralFont'; src: url('${spiralFontData}'); }`;
+                css += `@font-face { font-family: 'SpiralFont'; src: url('${spiralFontData}'); font-weight: normal; font-style: normal; }`;
             }
             if(centerFontData) {
-                css += `@font-face { font-family: 'CenterFont'; src: url('${centerFontData}'); }`;
+                css += `@font-face { font-family: 'CenterFont'; src: url('${centerFontData}'); font-weight: normal; font-style: normal; }`;
             }
             
             newStyle.textContent = css;
@@ -325,7 +322,6 @@
             }
         }
 
-        // --- MAIN GENERATOR ---
         function generate() {
             fullText = constructFullString();
             if(!fullText) return;
@@ -362,8 +358,8 @@
             let centerFamily = centerFontData ? "'CenterFont'" : "'Amiri', 'Arial', sans-serif";
 
             let svgCss = "";
-            if(spiralFontData) svgCss += `@font-face { font-family: 'SpiralFont'; src: url('${spiralFontData}'); } `;
-            if(centerFontData) svgCss += `@font-face { font-family: 'CenterFont'; src: url('${centerFontData}'); } `;
+            if(spiralFontData) svgCss += `@font-face { font-family: 'SpiralFont'; src: url('${spiralFontData}'); font-weight: normal; } `;
+            if(centerFontData) svgCss += `@font-face { font-family: 'CenterFont'; src: url('${centerFontData}'); font-weight: normal; } `;
 
             svgCss += `
                 .spiral-text { font-family: ${spiralFamily}; font-weight: ${currentFontWeight}; direction: rtl; }
@@ -410,7 +406,6 @@
             svg.appendChild(centerTxt);
 
             const maxR = b * endTheta;
-            
             const dim = (maxR * 2) + (FIXED_SIZE * 2); 
             const minCoord = -dim / 2;
 
@@ -420,8 +415,6 @@
             bgRect.setAttribute("width", dim);
             bgRect.setAttribute("height", dim);
         }
-
-        // --- EXPORT ---
 
         function downloadSVG() {
             const svg = document.getElementById('mainSvg');
@@ -441,7 +434,6 @@
             
             const cols = 2;
             const rows = 3;
-            
             const gap = 20; 
 
             const availableW = canvasW - ((cols - 1) * gap);
@@ -459,7 +451,6 @@
             const startY = (canvasH - totalGridH) / 2;
 
             const svg = document.getElementById('mainSvg');
-            
             const oldW = svg.getAttribute("width");
             const oldH = svg.getAttribute("height");
             svg.setAttribute("width", itemSize);
