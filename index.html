@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Talisman A4</title>
+    <title>Talism-e-Cobra</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     
@@ -133,7 +133,7 @@
             <div class="group-label">Export</div>
             <div class="row" style="flex-direction: column; align-items: stretch;">
                 <button class="btn-purple" onclick="downloadSVG()">Download Single SVG</button>
-                <button class="btn-green" onclick="downloadA4Sheet()" style="margin-top:5px;">Download Ultra-Res A4</button>
+                <button class="btn-green" onclick="downloadA4Sheet()" style="margin-top:5px;">Download Maximized A4</button>
             </div>
         </div>
         
@@ -154,13 +154,18 @@
         // --- FIXED CONSTANTS ---
         const TEXT_PREFIX = "توكلوا یا ملوك واعوان و خدام هذا الطلسم بابطال واخراج وسحب جمیع انواع السحر وخدام السحر والمس والتسالیط من وعن";
         const TEXT_SUFFIX = "الان الان الان";
-        const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; 
+        const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; // Matched to your reference image
         
         const FIXED_COLOR = "#ff0000"; // Red
         const FIXED_SIZE = 65;
         const FIXED_GAP = 100;
         const FIXED_DIRECTION = "center"; // Center Out
         
+        // --- REPO FONT CONFIGURATION ---
+        // These MUST match your uploaded filenames exactly
+        const REPO_SPIRAL_FONT_PATH = "./fonts/Al Qalam Quran Majeed 1 Regular.ttf"; 
+        const REPO_CENTER_FONT_PATH = "./fonts/AlQalam Taj Nastaleeq Regular.ttf"; 
+
         // --- SQUARE SETTINGS ---
         const USE_SQUARE = true;
         const SQUARE_SIZE = 750;
@@ -173,30 +178,54 @@
         
         let currentFontWeight = "700"; 
 
-        // Initialization
+        // Initialization - AUTO LOAD FROM REPO
         window.onload = async () => {
             const stat = document.getElementById('status');
             createNameInputs(); 
 
-            stat.innerText = "Loading Default Font...";
+            stat.innerText = "Loading Repo Fonts...";
+            
             try {
-                // Fetch default Amiri font
-                const r = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/amiri/files/amiri-arabic-700-normal.woff');
-                const b = await r.blob();
-                const reader = new FileReader();
-                reader.onload = e => {
-                    spiralFontData = e.target.result;
-                    centerFontData = e.target.result;
+                // 1. Fetch Spiral Font
+                spiralFontData = await loadFontFromUrl(REPO_SPIRAL_FONT_PATH);
+                
+                // 2. Fetch Center Font
+                centerFontData = await loadFontFromUrl(REPO_CENTER_FONT_PATH);
+
+                if(spiralFontData && centerFontData) {
                     injectFontFaces();
-                    stat.innerText = "Ready";
+                    stat.innerText = "Ready (Repo Fonts Loaded)";
                     generate();
-                };
-                reader.readAsDataURL(b);
+                } else {
+                    stat.innerText = "Warning: Fonts not found in /fonts folder";
+                    generate(); // Generate anyway with default fonts
+                }
+
             } catch(e) {
-                stat.innerText = "Offline Mode";
+                console.error(e);
+                stat.innerText = "Font Load Error (Using Defaults)";
                 generate();
             }
         };
+
+        // Helper to fetch and convert font to Base64
+        async function loadFontFromUrl(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to load ${url}`);
+                const blob = await response.blob();
+                
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error(error);
+                return null;
+            }
+        }
 
         // --- HELPER: MAKE MUFRAD ---
         function toMufrad(str) {
@@ -244,7 +273,7 @@
             return toMufrad(combined);
         }
 
-        // --- DUAL FONT HANDLING ---
+        // --- DUAL FONT HANDLING (MANUAL OVERRIDES) ---
         function handleSpiralFont(input) {
             const file = input.files[0];
             if (!file) return;
@@ -253,7 +282,7 @@
                 spiralFontData = e.target.result;
                 injectFontFaces();
                 generate();
-                document.getElementById('status').innerText = "Spiral Font Updated";
+                document.getElementById('status').innerText = "Manual Spiral Font";
             };
             reader.readAsDataURL(file);
         }
@@ -266,7 +295,7 @@
                 centerFontData = e.target.result;
                 injectFontFaces();
                 generate();
-                document.getElementById('status').innerText = "Center Font Updated";
+                document.getElementById('status').innerText = "Manual Center Font";
             };
             reader.readAsDataURL(file);
         }
@@ -327,6 +356,7 @@
 
             const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
             
+            // Define Fonts
             let spiralFamily = spiralFontData ? "'SpiralFont'" : "'Amiri', 'Arial', sans-serif";
             let centerFamily = centerFontData ? "'CenterFont'" : "'Amiri', 'Arial', sans-serif";
 
@@ -380,7 +410,7 @@
 
             const maxR = b * endTheta;
             
-            // --- TIGHT VIEWBOX CALCULATION ---
+            // --- TIGHT VIEWBOX CALCULATION (Maximized) ---
             const dim = (maxR * 2) + (FIXED_SIZE * 2); 
             const minCoord = -dim / 2;
 
@@ -404,19 +434,18 @@
 
         function downloadA4Sheet() {
             const status = document.getElementById('status');
-            status.innerText = "Generating Ultra-Res A4...";
+            status.innerText = "Generating Maximized A4...";
 
-            // A4 @ ~850 DPI (Incredibly High Res)
-            // Width: 7016px, Height: 9933px
+            // A4 @ Maximized Resolution (~850 DPI)
+            // 7016 x 9933 px
             const canvasW = 7016; 
             const canvasH = 9933; 
             
-            // Grid Config: 2 Cols, 3 Rows
             const cols = 2;
             const rows = 3;
             
-            // --- GEOMETRY (MAXIMIZED) ---
-            // Minimal gap (scaled for huge canvas)
+            // --- MAXIMIZED GEOMETRY ---
+            // Zero Margins, Minimal Gap (scaled for ultra-res)
             const marginX = 0; 
             const marginY = 0; 
             const gap = 20; 
@@ -428,7 +457,6 @@
             const cellW = availableW / cols;
             const cellH = availableH / rows;
 
-            // Square size governed by smaller dimension
             const itemSize = Math.min(cellW, cellH);
 
             // Centering offsets
