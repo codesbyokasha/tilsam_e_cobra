@@ -119,15 +119,13 @@
             </div>
 
             <div style="font-size: 10px; color: #666; margin-top: 4px;">
-                Spiral: Automatic (Repo)<br>
-                Mode: Mufrad (Separated)
+              
             </div>
         </div>
 
         <div class="panel-group" style="background:none; border:none;">
             <div class="group-label">Export</div>
             <div class="row" style="flex-direction: column; align-items: stretch;">
-                <button class="btn-purple" onclick="downloadSVG()">Download Single SVG</button>
                 <button class="btn-green" onclick="downloadA4Sheet()" style="margin-top:5px;">Download Maximized A4</button>
             </div>
         </div>
@@ -459,7 +457,7 @@
                     }
                 }
                 
-                saveFile(canvas.toDataURL("image/png"), "talisman_A4_Ultra.png");
+                saveFile(canvas.toDataURL("image/png"), "6 Cob Red Taweez.png");
                 URL.revokeObjectURL(url);
                 status.innerText = "Done";
             };
