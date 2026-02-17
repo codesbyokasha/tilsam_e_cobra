@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Talisman Spiral Generator (Safe Mode)</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- STYLES --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #222; /* Dark Studio BG */
+            margin: 0; padding: 0;
+            height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- CONTROL PANEL --- */
+        .controls {
+            background: white;
+            padding: 8px;
+            display: flex; flex-wrap: wrap; gap: 6px;
+            justify-content: center; align-items: flex-start;
+            border-bottom: 3px solid #ff0000;
+            z-index: 100;
+            max-height: 35vh; /* Increased slightly for new option */
+            overflow-y: auto;
+        }
+
+        .panel-group {
+            background: #f8f9fa; border: 1px solid #ddd;
+            padding: 6px 10px; border-radius: 6px;
+            display: flex; flex-direction: column; justify-content: flex-start;
+        }
+        .row { display: flex; gap: 5px; align-items: center; margin-bottom: 4px; }
+
+        .group-label { 
+            font-size: 11px; font-weight: bold; color: #d60000; 
+            text-transform: uppercase; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 2px;
+        }
+        .input-label { font-size: 11px; color: #333; font-weight: bold; margin-right: 2px; }
+
+        input, select, textarea { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        input[type="number"] { width: 50px; }
+        
+        .name-input {
+            width: 180px; 
+            margin-bottom: 3px;
+            text-align: right;
+            direction: rtl;
+            font-family: 'Amiri', serif;
+        }
+
+        input[type="file"] { 
+            font-size: 10px; width: 140px; 
+            color: #333;
+        }
+
+        button {
+            padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px;
+        }
+        .btn-blue { background: #007bff; }
+        .btn-green { background: #28a745; }
+        .btn-purple { background: #6f42c1; }
+        
+        /* --- WORKSPACE --- */
+        .workspace {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            background: #333;
+        }
+
+        .scroll-container {
+            width: 100%; height: 100%;
+            overflow: auto;
+            display: flex; justify-content: center; align-items: flex-start;
+            padding: 50px;
+            touch-action: pan-x pan-y;
+        }
+
+        #paper {
+            background-color: white;
+            width: 1000px; height: 1000px; 
+            box-shadow: 0 0 60px rgba(0,0,0,0.6);
+        }
+
+        svg { width: 100%; height: 100%; display: block; }
+        
+        /* Default font for UI */
+        text { font-family: 'Amiri', 'Arial', sans-serif; font-weight: 700; direction: rtl; }
+
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        
+        <div class="panel-group">
+            <div class="group-label">Target Names</div>
+            <div class="row">
+                <span class="input-label">Count:</span>
+                <input type="number" id="numNames" value="1" min="1" max="20" onchange="createNameInputs()">
+                <button class="btn-blue" onclick="generate()" style="margin-left: 10px;">Update Spiral</button>
+            </div>
+            <div id="namesContainer" style="display: flex; flex-direction: column; max-height: 100px; overflow-y: auto; padding-right: 5px;">
+                </div>
+        </div>
+
+        <div class="panel-group">
+            <div class="group-label">Font Style</div>
+            <div class="row">
+                <span class="input-label">Custom Font:</span>
+                <input type="file" id="fontInput" accept=".ttf,.otf,.woff" onchange="handleFontUpload(this)">
+            </div>
+            
+            <div class="row" style="margin-top:6px; border-top:1px solid #ddd; padding-top:6px;">
+                 <input type="checkbox" id="useCustomOnCenter" checked onchange="generate()">
+                 <span class="input-label" style="font-size:10px;">Custom Font on Center?</span>
+            </div>
+            <div style="font-size: 9px; color: #d60000; margin-left: 4px; line-height: 1.2;">
+                 *Uncheck if number disappears
+            </div>
+        </div>
+
+        <div class="panel-group" style="background:none; border:none;">
+            <div class="group-label">Export</div>
+            <div class="row" style="flex-direction: column; align-items: stretch;">
+                <button class="btn-purple" onclick="downloadSVG()">Download SVG</button>
+                <button class="btn-green" onclick="downloadPNG()" style="margin-top:5px;">Download 8K PNG</button>
+            </div>
+        </div>
+        
+        <div id="status" style="width:100%; text-align:center; color:#28a745; font-size:11px; margin-top:4px; font-weight:bold;">Ready</div>
+    </div>
+
+    <div class="workspace">
+        <div class="scroll-container">
+            <div id="paper">
+                <svg id="mainSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="measureCanvas" style="display:none;"></canvas>
+
+    <script>
+        // --- FIXED CONSTANTS ---
+        const TEXT_PREFIX = "توكلوا یا ملوك واعوان و خدام هذا الطلسم بابطال واخراج وسحب جمیع انواع السحر وخدام السحر والمس والتسالیط من وعن";
+        const TEXT_SUFFIX = "الان الان الان";
+        const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; 
+        
+        const FIXED_COLOR = "#ff0000"; // Red
+        const FIXED_SIZE = 65;
+        const FIXED_GAP = 100;
+        const FIXED_DIRECTION = "center"; // Center Out
+        
+        // --- SQUARE SETTINGS ---
+        const USE_SQUARE = true;
+        const SQUARE_SIZE = 600;
+
+        let fullText = "";
+        
+        // Font Variables
+        let customFontData = null; 
+        let currentFontFamily = "'Amiri', 'Arial', sans-serif";
+        let currentFontWeight = "700";
+
+        // Initialization
+        window.onload = async () => {
+            const stat = document.getElementById('status');
+            createNameInputs(); 
+
+            stat.innerText = "Loading Font...";
+            try {
+                // Fetch default Amiri font
+                const r = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/amiri/files/amiri-arabic-700-normal.woff');
+                const b = await r.blob();
+                const reader = new FileReader();
+                reader.onload = e => {
+                    customFontData = e.target.result;
+                    currentFontFamily = "'UploadedFont'";
+                    injectFontFace(customFontData);
+                    stat.innerText = "Ready";
+                    generate();
+                };
+                reader.readAsDataURL(b);
+            } catch(e) {
+                stat.innerText = "Offline Mode";
+                generate();
+            }
+        };
+
+        // --- HELPER: MAKE MUFRAD (SEPARATE LETTERS) ---
+        function toMufrad(str) {
+            if(!str) return "";
+            return str.replace(/\s+/g, '').split('').join(' ');
+        }
+
+        // --- INPUT LOGIC ---
+        function createNameInputs() {
+            const count = parseInt(document.getElementById('numNames').value) || 1;
+            const container = document.getElementById('namesContainer');
+            
+            const currentValues = [];
+            const existingInputs = container.getElementsByTagName('input');
+            for(let i=0; i<existingInputs.length; i++) {
+                currentValues.push(existingInputs[i].value);
+            }
+
+            container.innerHTML = ""; 
+
+            for (let i = 0; i < count; i++) {
+                const inp = document.createElement("input");
+                inp.type = "text";
+                inp.className = "name-input";
+                inp.placeholder = "Name " + (i + 1);
+                if (i < currentValues.length) inp.value = currentValues[i];
+                inp.addEventListener('input', generate); 
+                container.appendChild(inp);
+            }
+            generate();
+        }
+
+        function constructFullString() {
+            const container = document.getElementById('namesContainer');
+            const inputs = container.getElementsByTagName('input');
+            let namesArray = [];
+            
+            for(let i=0; i<inputs.length; i++) {
+                let val = inputs[i].value.trim();
+                if(val) namesArray.push(val);
+            }
+
+            let namesString = namesArray.length > 0 ? namesArray.join(" و ") : ".......";
+            const combined = `${TEXT_PREFIX} ${namesString} ${TEXT_SUFFIX}`;
+            return toMufrad(combined);
+        }
+
+        // --- FONT HANDLING ---
+        function handleFontUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                customFontData = e.target.result;
+                injectFontFace(customFontData);
+                currentFontWeight = "normal"; 
+                document.getElementById('status').innerText = "Font Loaded: " + file.name;
+                generate();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function injectFontFace(base64) {
+            const old = document.getElementById('dynamicFontStyle');
+            if(old) old.remove();
+            const newStyle = document.createElement('style');
+            newStyle.id = 'dynamicFontStyle';
+            newStyle.textContent = `@font-face { font-family: 'UploadedFont'; src: url('${base64}'); }`;
+            document.head.appendChild(newStyle);
+            currentFontFamily = "'UploadedFont'";
+        }
+
+        // --- MAIN GENERATOR ---
+        function generate() {
+            fullText = constructFullString();
+            if(!fullText) return;
+
+            const svg = document.getElementById('mainSvg');
+            svg.innerHTML = "";
+
+            // Measure Text
+            const ctx = document.getElementById('measureCanvas').getContext('2d');
+            ctx.font = `${currentFontWeight} ${FIXED_SIZE}px ${currentFontFamily}`;
+            const textLen = ctx.measureText(fullText).width;
+
+            // Spiral Calculations
+            const b = FIXED_GAP / (2 * Math.PI);
+            let startRadius = USE_SQUARE ? (SQUARE_SIZE / 2 + 10) : 0; 
+            let startTheta = startRadius / b;
+            const endTheta = Math.sqrt( (2 * (textLen + 3000) / b) + (startTheta*startTheta) );
+
+            // Generate Points
+            const steps = 600 * ((endTheta - startTheta)/6);
+            const stepSize = (endTheta - startTheta) / steps;
+            
+            let points = [];
+            for(let t = startTheta; t <= endTheta; t+=stepSize) {
+                points.push({ x: (b*t)*Math.cos(t), y: (b*t)*Math.sin(t) });
+            }
+            if(FIXED_DIRECTION === "center") points.reverse();
+
+            if(points.length < 2) return;
+            let d = `M ${points[0].x} ${points[0].y}`;
+            for(let i=1; i<points.length; i++) d += ` L ${points[i].x} ${points[i].y}`;
+
+            // Add CSS Styles
+            const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+            
+            // Check the Safety Switch State
+            const useCenterCustom = document.getElementById('useCustomOnCenter').checked;
+
+            if (customFontData) {
+                // We define the fallback stack: Try UploadedFont first, if missing glyphs, use Amiri
+                let centerStack = useCenterCustom 
+                    ? "'UploadedFont', 'Amiri', 'Arial', sans-serif" 
+                    : "'Amiri', 'Arial', sans-serif";
+
+                style.textContent = `
+                    @font-face { font-family: 'UploadedFont'; src: url('${customFontData}'); }
+                    .spiral-text { font-family: 'UploadedFont'; font-weight: ${currentFontWeight}; direction: rtl; }
+                    .center-text { font-family: ${centerStack}; font-weight: ${currentFontWeight}; direction: rtl; }
+                `;
+            } else {
+                style.textContent = `
+                    text { font-family: 'Amiri', 'Arial', sans-serif; font-weight: 700; direction: rtl; }
+                `;
+            }
+            svg.appendChild(style);
+
+            // Background White
+            const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bgRect.setAttribute("fill", "#ffffff"); 
+            svg.appendChild(bgRect);
+
+            // Path
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("id", "spiralP");
+            path.setAttribute("d", d);
+            path.setAttribute("fill", "none");
+            svg.appendChild(path);
+
+            // Spiral Text
+            const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt.setAttribute("class", "spiral-text"); // Use specific class
+            txt.setAttribute("font-size", FIXED_SIZE);
+            txt.setAttribute("fill", FIXED_COLOR); 
+            txt.setAttribute("dy", FIXED_SIZE * 0.35);
+
+            const tp = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+            tp.setAttribute("href", "#spiralP");
+            tp.textContent = fullText;
+            tp.setAttribute("startOffset", "100%");
+            if(FIXED_DIRECTION === "center") tp.setAttribute("side", "right");
+            
+            txt.appendChild(tp);
+            svg.appendChild(txt);
+            
+            // --- CENTER NUMBER ---
+            const centerTxt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            centerTxt.textContent = CENTER_NUMBER;
+            centerTxt.setAttribute("class", "center-text"); // Uses variable class based on checkbox
+            centerTxt.setAttribute("x", 0);
+            centerTxt.setAttribute("y", 0);
+            centerTxt.setAttribute("fill", FIXED_COLOR);
+            centerTxt.setAttribute("font-size", "80"); 
+            centerTxt.setAttribute("text-anchor", "middle"); 
+            centerTxt.setAttribute("dominant-baseline", "middle"); 
+            svg.appendChild(centerTxt);
+
+            // ViewBox
+            const maxR = b * endTheta;
+            const dim = (maxR * 2) + (FIXED_SIZE * 4);
+            const minCoord = -dim / 2;
+
+            svg.setAttribute("viewBox", `${minCoord} ${minCoord} ${dim} ${dim}`);
+            bgRect.setAttribute("x", minCoord);
+            bgRect.setAttribute("y", minCoord);
+            bgRect.setAttribute("width", dim);
+            bgRect.setAttribute("height", dim);
+        }
+
+        // --- EXPORT ---
+
+        function downloadSVG() {
+            const svg = document.getElementById('mainSvg');
+            const ser = new XMLSerializer();
+            let source = ser.serializeToString(svg);
+            if(!source.match(/^<svg[^>]+xmlns/)) source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            const blob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
+            saveFile(URL.createObjectURL(blob), "talisman_square.svg");
+        }
+
+        function downloadPNG() {
+            const svg = document.getElementById('mainSvg');
+            const status = document.getElementById('status');
+            status.innerText = "Generating 8K PNG...";
+            const renderSize = 8000; 
+            
+            const oldW = svg.getAttribute("width");
+            const oldH = svg.getAttribute("height");
+            svg.setAttribute("width", renderSize);
+            svg.setAttribute("height", renderSize);
+            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+            const ser = new XMLSerializer();
+            const svgData = ser.serializeToString(svg);
+
+            if(oldW) svg.setAttribute("width", oldW); else svg.removeAttribute("width");
+            if(oldH) svg.setAttribute("height", oldH); else svg.removeAttribute("height");
+
+            const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement("canvas");
+                canvas.width = renderSize;
+                canvas.height = renderSize;
+                const ctx = canvas.getContext("2d");
+                
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0,0, renderSize, renderSize);
+                ctx.drawImage(img, 0, 0, renderSize, renderSize);
+                
+                saveFile(canvas.toDataURL("image/png"), "talisman_square_8k.png");
+                URL.revokeObjectURL(url);
+                status.innerText = "Done";
+            };
+            setTimeout(() => { img.src = url; }, 100);
+        }
+
+        function saveFile(url, name) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
