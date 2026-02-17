@@ -162,8 +162,9 @@
         const FIXED_DIRECTION = "center"; // Center Out
         
         // --- REPO FONT CONFIGURATION (Encoded spaces %20) ---
-        const REPO_SPIRAL_FONT_PATH = "./fonts/Al%20Qalam%20Quran%20Majeed%201%20Regular.ttf"; 
-        const REPO_CENTER_FONT_PATH = "./fonts/AlQalam%20Taj%20Nastaleeq%20Regular.ttf"; 
+        const REPO_SPIRAL_FONT_PATH = "./fonts/alqalam-quran-majeed.ttf";
+        const REPO_CENTER_FONT_PATH = "./fonts/alqalam-taj-nastaleeq.ttf";
+ 
 
         // --- SQUARE SETTINGS ---
         const USE_SQUARE = true;
@@ -193,12 +194,11 @@
                 const centerLoaded = await loadFontFromUrl(REPO_CENTER_FONT_PATH);
                 if(centerLoaded) centerFontData = centerLoaded;
 
-                if(spiralFontData && centerFontData) {
-                    injectFontFaces();
-                    stat.innerText = "Ready (Repo Fonts Loaded)";
-                } else {
-                    stat.innerText = "Repo Fonts Failed (Using Default)";
-                }
+                if (spiralFontData) injectFontFaces();
+                stat.innerText = spiralFontData
+                     ? "Ready (Repo Fonts Loaded)"
+                     : "Font Load Failed – Check GitHub Pages";
+
                 generate();
 
             } catch(e) {
