@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Talisman Spiral Generator</title>
+    <title>Talisman A4 (Ultra-Max Resolution)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     
@@ -25,7 +25,7 @@
             justify-content: center; align-items: flex-start;
             border-bottom: 3px solid #ff0000;
             z-index: 100;
-            max-height: 40vh; /* Increased for dual font inputs */
+            max-height: 40vh;
             overflow-y: auto;
         }
 
@@ -132,8 +132,8 @@
         <div class="panel-group" style="background:none; border:none;">
             <div class="group-label">Export</div>
             <div class="row" style="flex-direction: column; align-items: stretch;">
-                <button class="btn-purple" onclick="downloadSVG()">Download SVG</button>
-                <button class="btn-green" onclick="downloadPNG()" style="margin-top:5px;">Download 8K PNG</button>
+                <button class="btn-purple" onclick="downloadSVG()">Download Single SVG</button>
+                <button class="btn-green" onclick="downloadA4Sheet()" style="margin-top:5px;">Download Ultra-Res A4</button>
             </div>
         </div>
         
@@ -163,15 +163,15 @@
         
         // --- SQUARE SETTINGS ---
         const USE_SQUARE = true;
-        const SQUARE_SIZE = 500;
+        const SQUARE_SIZE = 750;
 
         let fullText = "";
         
         // Font Variables
-        let spiralFontData = null; // Stores Base64 for Spiral Font
-        let centerFontData = null; // Stores Base64 for Center Font
+        let spiralFontData = null; 
+        let centerFontData = null; 
         
-        let currentFontWeight = "700"; // Default bold
+        let currentFontWeight = "700"; 
 
         // Initialization
         window.onload = async () => {
@@ -185,7 +185,6 @@
                 const b = await r.blob();
                 const reader = new FileReader();
                 reader.onload = e => {
-                    // Set Amiri as default for BOTH initially
                     spiralFontData = e.target.result;
                     centerFontData = e.target.result;
                     injectFontFaces();
@@ -199,7 +198,7 @@
             }
         };
 
-        // --- HELPER: MAKE MUFRAD (SEPARATE LETTERS) ---
+        // --- HELPER: MAKE MUFRAD ---
         function toMufrad(str) {
             if(!str) return "";
             return str.replace(/\s+/g, '').split('').join(' ');
@@ -246,7 +245,6 @@
         }
 
         // --- DUAL FONT HANDLING ---
-        
         function handleSpiralFont(input) {
             const file = input.files[0];
             if (!file) return;
@@ -280,7 +278,6 @@
             const newStyle = document.createElement('style');
             newStyle.id = 'dynamicFontStyle';
             
-            // We define two separate font families in CSS
             let css = "";
             if(spiralFontData) {
                 css += `@font-face { font-family: 'SpiralFont'; src: url('${spiralFontData}'); }`;
@@ -292,7 +289,6 @@
             newStyle.textContent = css;
             document.head.appendChild(newStyle);
             
-            // If custom fonts are loaded, switch to normal weight (custom fonts usually include bold if needed)
             if(spiralFontData || centerFontData) {
                 currentFontWeight = "normal";
             }
@@ -306,20 +302,16 @@
             const svg = document.getElementById('mainSvg');
             svg.innerHTML = "";
 
-            // Measure Text (using Spiral Font)
             const ctx = document.getElementById('measureCanvas').getContext('2d');
-            // If SpiralFont is loaded, use it for measuring, otherwise fallback
             let measureFont = spiralFontData ? "SpiralFont" : "'Amiri', sans-serif";
             ctx.font = `${currentFontWeight} ${FIXED_SIZE}px ${measureFont}`;
             const textLen = ctx.measureText(fullText).width;
 
-            // Spiral Calculations
             const b = FIXED_GAP / (2 * Math.PI);
             let startRadius = USE_SQUARE ? (SQUARE_SIZE / 2 + 10) : 0; 
             let startTheta = startRadius / b;
             const endTheta = Math.sqrt( (2 * (textLen + 3000) / b) + (startTheta*startTheta) );
 
-            // Generate Points
             const steps = 600 * ((endTheta - startTheta)/6);
             const stepSize = (endTheta - startTheta) / steps;
             
@@ -333,15 +325,11 @@
             let d = `M ${points[0].x} ${points[0].y}`;
             for(let i=1; i<points.length; i++) d += ` L ${points[i].x} ${points[i].y}`;
 
-            // Add CSS Styles to SVG (Embedded for Export)
             const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
             
-            // Define Fallbacks
-            // If no custom font, fall back to Amiri/Arial
             let spiralFamily = spiralFontData ? "'SpiralFont'" : "'Amiri', 'Arial', sans-serif";
             let centerFamily = centerFontData ? "'CenterFont'" : "'Amiri', 'Arial', sans-serif";
 
-            // Embed font data into SVG style so it travels with the file
             let svgCss = "";
             if(spiralFontData) svgCss += `@font-face { font-family: 'SpiralFont'; src: url('${spiralFontData}'); } `;
             if(centerFontData) svgCss += `@font-face { font-family: 'CenterFont'; src: url('${centerFontData}'); } `;
@@ -354,19 +342,16 @@
             style.textContent = svgCss;
             svg.appendChild(style);
 
-            // Background White
             const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
             bgRect.setAttribute("fill", "#ffffff"); 
             svg.appendChild(bgRect);
 
-            // Path
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("id", "spiralP");
             path.setAttribute("d", d);
             path.setAttribute("fill", "none");
             svg.appendChild(path);
 
-            // Spiral Text
             const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
             txt.setAttribute("class", "spiral-text"); 
             txt.setAttribute("font-size", FIXED_SIZE);
@@ -382,21 +367,21 @@
             txt.appendChild(tp);
             svg.appendChild(txt);
             
-            // --- CENTER NUMBER ---
             const centerTxt = document.createElementNS("http://www.w3.org/2000/svg", "text");
             centerTxt.textContent = CENTER_NUMBER;
             centerTxt.setAttribute("class", "center-text"); 
             centerTxt.setAttribute("x", 0);
             centerTxt.setAttribute("y", 0);
             centerTxt.setAttribute("fill", FIXED_COLOR);
-            centerTxt.setAttribute("font-size", "80"); 
+            centerTxt.setAttribute("font-size", "150"); 
             centerTxt.setAttribute("text-anchor", "middle"); 
             centerTxt.setAttribute("dominant-baseline", "middle"); 
             svg.appendChild(centerTxt);
 
-            // ViewBox
             const maxR = b * endTheta;
-            const dim = (maxR * 2) + (FIXED_SIZE * 4);
+            
+            // --- TIGHT VIEWBOX CALCULATION ---
+            const dim = (maxR * 2) + (FIXED_SIZE * 2); 
             const minCoord = -dim / 2;
 
             svg.setAttribute("viewBox", `${minCoord} ${minCoord} ${dim} ${dim}`);
@@ -414,24 +399,58 @@
             let source = ser.serializeToString(svg);
             if(!source.match(/^<svg[^>]+xmlns/)) source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
             const blob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
-            saveFile(URL.createObjectURL(blob), "talisman_square.svg");
+            saveFile(URL.createObjectURL(blob), "talisman.svg");
         }
 
-        function downloadPNG() {
-            const svg = document.getElementById('mainSvg');
+        function downloadA4Sheet() {
             const status = document.getElementById('status');
-            status.innerText = "Generating 8K PNG...";
-            const renderSize = 8000; 
+            status.innerText = "Generating Ultra-Res A4...";
+
+            // A4 @ ~850 DPI (Incredibly High Res)
+            // Width: 7016px, Height: 9933px
+            const canvasW = 7016; 
+            const canvasH = 9933; 
             
+            // Grid Config: 2 Cols, 3 Rows
+            const cols = 2;
+            const rows = 3;
+            
+            // --- GEOMETRY (MAXIMIZED) ---
+            // Minimal gap (scaled for huge canvas)
+            const marginX = 0; 
+            const marginY = 0; 
+            const gap = 20; 
+
+            // Calculate max possible size
+            const availableW = canvasW - ((cols - 1) * gap);
+            const availableH = canvasH - ((rows - 1) * gap);
+
+            const cellW = availableW / cols;
+            const cellH = availableH / rows;
+
+            // Square size governed by smaller dimension
+            const itemSize = Math.min(cellW, cellH);
+
+            // Centering offsets
+            const totalGridW = (cols * itemSize) + ((cols - 1) * gap);
+            const totalGridH = (rows * itemSize) + ((rows - 1) * gap);
+            
+            const startX = (canvasW - totalGridW) / 2;
+            const startY = (canvasH - totalGridH) / 2;
+
+            const svg = document.getElementById('mainSvg');
+            
+            // Prep SVG
             const oldW = svg.getAttribute("width");
             const oldH = svg.getAttribute("height");
-            svg.setAttribute("width", renderSize);
-            svg.setAttribute("height", renderSize);
+            svg.setAttribute("width", itemSize);
+            svg.setAttribute("height", itemSize);
             svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
             const ser = new XMLSerializer();
             const svgData = ser.serializeToString(svg);
 
+            // Restore UI
             if(oldW) svg.setAttribute("width", oldW); else svg.removeAttribute("width");
             if(oldH) svg.setAttribute("height", oldH); else svg.removeAttribute("height");
 
@@ -441,15 +460,24 @@
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement("canvas");
-                canvas.width = renderSize;
-                canvas.height = renderSize;
+                canvas.width = canvasW;
+                canvas.height = canvasH;
                 const ctx = canvas.getContext("2d");
                 
+                // Fill White Background
                 ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0,0, renderSize, renderSize);
-                ctx.drawImage(img, 0, 0, renderSize, renderSize);
+                ctx.fillRect(0, 0, canvasW, canvasH);
+
+                // Draw Grid
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const x = startX + c * (itemSize + gap);
+                        const y = startY + r * (itemSize + gap);
+                        ctx.drawImage(img, x, y, itemSize, itemSize);
+                    }
+                }
                 
-                saveFile(canvas.toDataURL("image/png"), "talisman_square_8k.png");
+                saveFile(canvas.toDataURL("image/png"), "talisman_A4_Ultra.png");
                 URL.revokeObjectURL(url);
                 status.innerText = "Done";
             };
