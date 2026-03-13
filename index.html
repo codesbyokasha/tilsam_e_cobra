@@ -129,10 +129,6 @@
         // --- FIXED CONSTANTS ---
         const TEXT_PREFIX = "توكلوا یا ملوك واعوان و خدام هذا الطلسم بابطال واخراج وسحب جمیع انواع السحر وخدام السحر والمس والتسالیط منوعن";
         const TEXT_SUFFIX = "الان الان الان";
-        
-        // NOTE: If the font still looks like standard numbers instead of the custom font, 
-        // change the below variable to "64158473929" (Western numerals). Some custom Arabic 
-        // fonts only style Western keyboard numbers.
         const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; 
         
         const FIXED_COLOR = "#ff0000"; // Red
@@ -173,6 +169,18 @@
                 spiralFontData = spiralData;
                 centerFontData = centerData;
 
+                // Force browser to load the custom fonts into memory explicitly
+                if (spiralFontData) {
+                    const sf = new FontFace('SpiralFont', `url(${spiralFontData})`);
+                    await sf.load();
+                    document.fonts.add(sf);
+                }
+                if (centerFontData) {
+                    const cf = new FontFace('CenterFont', `url(${centerFontData})`);
+                    await cf.load();
+                    document.fonts.add(cf);
+                }
+
                 injectFontFaces();
                 
                 if (spiralFontData && centerFontData) {
@@ -192,32 +200,37 @@
             }
         };
 
-        // --- UPDATED FONT LOADER ---
-        // Forces the correct MIME type so the browser doesn't reject GitHub's raw file response
+        // --- BULLETPROOF FONT LOADER ---
+        // Bypasses Blob and FileReader to directly parse binary to Base64
         async function loadFontFromUrl(url) {
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`Failed to load ${url}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                // Read as raw binary data
                 const buffer = await response.arrayBuffer();
                 
-                // Force the correct MIME type based on extension
+                // Debugging: If file is too small, it might be a 404 HTML page instead of a font
+                if (buffer.byteLength < 1000) {
+                    console.warn(`Warning: File at ${url} is suspiciously small. Check case-sensitivity and path.`);
+                }
+                
+                // Convert raw binary to base64 manually
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                const base64 = window.btoa(binary);
+                
+                let ext = url.split('.').pop().toLowerCase();
                 let mimeType = "font/ttf";
-                if (url.toLowerCase().endsWith(".otf")) mimeType = "font/otf";
-                if (url.toLowerCase().endsWith(".woff")) mimeType = "font/woff";
-                
-                // Re-package it with the proper label
-                const blob = new Blob([buffer], { type: mimeType });
-                
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
+                if (ext === "otf") mimeType = "font/otf";
+                if (ext === "woff") mimeType = "font/woff";
+
+                return `data:${mimeType};base64,${base64}`;
             } catch (error) {
-                console.error("Font fetch error:", error);
+                console.error(`Fetch error for ${url}:`, error);
                 return null;
             }
         }
