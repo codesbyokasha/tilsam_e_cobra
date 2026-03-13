@@ -129,6 +129,10 @@
         // --- FIXED CONSTANTS ---
         const TEXT_PREFIX = "توكلوا یا ملوك واعوان و خدام هذا الطلسم بابطال واخراج وسحب جمیع انواع السحر وخدام السحر والمس والتسالیط منوعن";
         const TEXT_SUFFIX = "الان الان الان";
+        
+        // NOTE: If the font still looks like standard numbers instead of the custom font, 
+        // change the below variable to "64158473929" (Western numerals). Some custom Arabic 
+        // fonts only style Western keyboard numbers.
         const CENTER_NUMBER = "٦٤١٥٨٤٧٣٩٢٩"; 
         
         const FIXED_COLOR = "#ff0000"; // Red
@@ -138,7 +142,7 @@
         
         // --- REPO FONT CONFIGURATION ---
         const REPO_SPIRAL_FONT_PATH = "fonts/alqalam-quran-majeed.ttf";
-        const REPO_CENTER_FONT_PATH = "fonts/center.ttf"; // Added center font path
+        const REPO_CENTER_FONT_PATH = "fonts/center.ttf"; 
 
         // --- SQUARE SETTINGS ---
         const USE_SQUARE = true;
@@ -160,7 +164,7 @@
             stat.innerText = "Loading Fonts...";
             
             try {
-                // Load both fonts concurrently from the repo
+                // Load both fonts concurrently
                 const [spiralData, centerData] = await Promise.all([
                     loadFontFromUrl(REPO_SPIRAL_FONT_PATH),
                     loadFontFromUrl(REPO_CENTER_FONT_PATH)
@@ -188,11 +192,23 @@
             }
         };
 
+        // --- UPDATED FONT LOADER ---
+        // Forces the correct MIME type so the browser doesn't reject GitHub's raw file response
         async function loadFontFromUrl(url) {
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`Failed to load ${url}`);
-                const blob = await response.blob();
+                
+                // Read as raw binary data
+                const buffer = await response.arrayBuffer();
+                
+                // Force the correct MIME type based on extension
+                let mimeType = "font/ttf";
+                if (url.toLowerCase().endsWith(".otf")) mimeType = "font/otf";
+                if (url.toLowerCase().endsWith(".woff")) mimeType = "font/woff";
+                
+                // Re-package it with the proper label
+                const blob = new Blob([buffer], { type: mimeType });
                 
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
